@@ -86,6 +86,7 @@ async def fclear(ctx):
     if not ctx.channel.id in players:
         await ctx.send('There is no counter in this channel')
     else:
-        players[ctx.channel.id] = {}
+        del players[ctx.channel.id]
+        await ctx.send('Fully cleared the counter')
 
 bot.run(token)
