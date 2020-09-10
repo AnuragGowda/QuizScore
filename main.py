@@ -15,7 +15,7 @@ async def on_ready():
     print(f'{bot.user.name} has connected to Discord!')
 
 @bot.command(name='start', help='Starts a counter', aliases=['init', 'Start', 'i'])
-async def hello(ctx):
+async def start(ctx):
     if ctx.channel.id in players:
         await ctx.send('A Counter has already started in this channel')
     else:
@@ -63,18 +63,29 @@ async def show(ctx):
     else:
         lb = [[v,k] for k, v in sorted(players[ctx.channel.id].items(), key=lambda item: item[1])]
         lb.reverse()
+        ''' Slower
         await ctx.send('Leaderboard')
         for pos, item in enumerate(lb):
             await ctx.send(f'({pos+1}){item[1]} - {item[0]}pts')
-
+        '''
+        lbText = 'Leaderboard\n'
+        for pos, item in enumerate(lb):
+            lbText += f'({pos+1}){item[1]} - {item[0]}pts\n'
+        await ctx.send(lbText[:-1])
 
 @bot.command(name='clear', help='Starts a counter', aliases=['end', 'c', 'e'])
-async def hello(ctx):
+async def clear(ctx):
     if not ctx.channel.id in players:
         await ctx.send('There is no counter in this channel')
     else:
-        del players[ctx.channel.id]
+        players[ctx.channel.id] = dict.fromkeys(players[ctx.channel.id], 0)
         await ctx.send('Cleared the counter')
 
+@bot.command(name='fullclear', help='Starts a counter', aliases=['fc', 'fullc', 'fclear'])
+async def fclear(ctx):
+    if not ctx.channel.id in players:
+        await ctx.send('There is no counter in this channel')
+    else:
+        players[ctx.channel.id] = {}
 
 bot.run(token)
