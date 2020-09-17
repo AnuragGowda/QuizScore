@@ -22,7 +22,7 @@ async def start(ctx):
         players[ctx.channel.id] = {}
         await ctx.send('Starting a counter')
 
-@bot.command(name='add', help='Adds score to a player, If a player doesn\'t exists, it creates them', alisases=['a'])
+@bot.command(name='add', help='Adds score to a player, If a player doesn\'t exists, it creates them', aliases=['a'])
 async def add(ctx):
     if not ctx.channel.id in players:
         await ctx.send('You need to start a counter before running this command')
@@ -55,6 +55,42 @@ async def subtract(ctx):
             else:
                 players[ctx.channel.id][playerName] = -1*pts
         await ctx.send(f'{pts} points have been taken from {playerName}, and {playerName} now has {players[ctx.channel.id][playerName]} points in total')
+
+@bot.command(name='p', help='+15')
+async def p(ctx):
+    if not ctx.channel.id in players:
+        await ctx.send('You need to start a counter before running this command')
+    else:
+        playerName = ctx.message.content.split()[2]
+        if playerName in players[ctx.channel.id]:
+            players[ctx.channel.id][playerName] += 15
+        else:
+            players[ctx.channel.id][playerName] = 15
+        await ctx.send(f'{playerName} has been given 15 points, and now has {players[ctx.channel.id][playerName]} points in total')
+
+@bot.command(name='b', help='+10')
+async def b(ctx):
+    if not ctx.channel.id in players:
+        await ctx.send('You need to start a counter before running this command')
+    else:
+        playerName = ctx.message.content.split()[2]
+        if playerName in players[ctx.channel.id]:
+            players[ctx.channel.id][playerName] += 10
+        else:
+            players[ctx.channel.id][playerName] = 10
+        await ctx.send(f'{playerName} has been given 10 points, and now has {players[ctx.channel.id][playerName]} points in total')
+
+@bot.command(name='n', help='-5')
+async def n(ctx):
+    if not ctx.channel.id in players:
+        await ctx.send('You need to start a counter before running this command')
+    else:
+        playerName = ctx.message.content.split()[2]
+        if playerName in players[ctx.channel.id]:
+            players[ctx.channel.id][playerName] -= 5
+        else:
+            players[ctx.channel.id][playerName] = -5
+        await ctx.send(f'5 points have been taken from {playerName}, and {playerName} now has {players[ctx.channel.id][playerName]} points in total')
 
 @bot.command(name='show', help='Shows scoreboard', aliases=['disp', 'display', 'd', 'lb'])
 async def show(ctx):
