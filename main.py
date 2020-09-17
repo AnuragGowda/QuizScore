@@ -109,7 +109,7 @@ async def show(ctx):
             lbText += f'({pos+1}){item[1]} - {item[0]}pts\n'
         await ctx.send(lbText[:-1])
 
-@bot.command(name='clear', help='Starts a counter', aliases=['end', 'c', 'e'])
+@bot.command(name='clear', help='Sets all player scores to 0 in the counter if it exists', aliases=['end', 'c', 'e'])
 async def clear(ctx):
     if not ctx.channel.id in players:
         await ctx.send('There is no counter in this channel')
@@ -117,7 +117,7 @@ async def clear(ctx):
         players[ctx.channel.id] = dict.fromkeys(players[ctx.channel.id], 0)
         await ctx.send('Cleared the counter')
 
-@bot.command(name='fullclear', help='Starts a counter', aliases=['fc', 'fullc', 'fclear'])
+@bot.command(name='fullclear', help='Removes the counter in the current channel if it exists', aliases=['fc', 'fullc', 'fclear'])
 async def fclear(ctx):
     if not ctx.channel.id in players:
         await ctx.send('There is no counter in this channel')
