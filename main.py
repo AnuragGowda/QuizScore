@@ -33,6 +33,7 @@ class Player:
     def leaderboard(cls, channel):
         lb = 'LEADERBOARD\n'
         for pos, player in enumerate(sorted(cls.playersByChannel[channel], key=lambda x: x.score, reverse=True)):
+            # The formatting doesn't work idk why lol
             lb+=f'{f"({pos+1}) {player.name} - {player.score}pts":<30} {f"| Negs: {player.negs} ":<12}{f"| Bonuses: {player.bonus} ":<14}| Pow: {player.pow}\n'
         return lb[:-1]
 
@@ -93,7 +94,7 @@ def valid_channel(ctx):
     return Player.validChannel(ctx.channel.id)
 
 # Add command on bot, takes 2 additional params, name and amount
-@bot.command(name='a', help='Score changers, either type: \n a(misc score add - type player name after, and then a space and then value to add after that)\n n (neg - type player name after, subtracts 10 from this player)\n b(bonus - type player name after, adds 10 to this player)\n or p(pow - type player name after, adds 15 to this player)', aliases=['n', 'b', 'p'])
+@bot.command(name='a', help='Score changers, either type: a(misc score add - type player name after, and then a space and then value to add after that), n (neg - type player name after, subtracts 10 from this player), b(bonus - type player name after, adds 10 to this player), or p(pow - type player name after, adds 15 to this player)', aliases=['n', 'b', 'p'])
 async def scoreChange(ctx, name, amount=None):
     # If amount is none then they called either n, p or b, find which easily with split()[0]
     if amount == None:
@@ -108,7 +109,7 @@ async def show(ctx):
 
 @bot.command(name='clear', help='Sets all player scores to 0 in the counter if there are players in the channel, if you type a space and anything after, a fullclear is initiated (all players players in a channel get deleted)', aliases=['end', 'c', 'e'])
 @check(valid_channel) # <- custom function again
-async def clear(ctx, full):
+async def clear(ctx, full=False):
     # If no other arg passed then its only a reset to 0
     if not full:
         for player in Player.playersByChannel[ctx.channel.id]:
