@@ -1,128 +1,103 @@
-from discord.ext.commands import Bot
+from discord.ext.commands import Bot, check, CheckFailure
 from dotenv import load_dotenv
 from os import getenv
+from functools import wraps
 
-players = {}
+class Player:
 
+    playersByChannel = {}
 
+    def __init__(self, name, channel):
+        self.name = name
+        self.channel = channel
+        self.reset()
+        if self.validChannel(channel):
+            Player.playersByChannel[self.channel].append(self)
+        else:
+            self.playersByChannel[self.channel] = [self]
+    
+    @classmethod
+    def validChannel(cls, channel):
+        return True if channel in cls.playersByChannel else False
+    
+    @classmethod
+    def leaderboard(cls, channel):
+        lb = 'LEADERBOARD\n'
+        for pos, player in enumerate(sorted(cls.playersByChannel[channel], key=lambda x: x.score, reverse=True)):
+            lb+=f'{f"({pos+1}) {player.name} - {player.score}pts":<30} {f"| Negs: {player.negs} ":<12}{f"| Bonuses: {player.bonus} ":<14}| Pow: {player.pow}\n'
+        return lb[:-1]
+
+    @classmethod
+    def update(cls, name, amount, channel):
+        if channel in cls.playersByChannel and name in [player.name for player in cls.playersByChannel[channel]]:
+            return [player for player in cls.playersByChannel[channel] if player.name == name][0].add(amount)
+        return Player(name, channel).add(amount)
+
+    def reset(self):
+        self.score = 0
+        self.negs = 0
+        self.pow = 0
+        self.bonus = 0
+    
+    def add(self, amount):
+
+        special = {
+            'n':{'attr':'self.negs+=1', 'val':-5},
+            'b':{'attr':'self.bonus+=1', 'val':10},
+            'p':{'attr':'self.pow+=1', 'val':15}
+        }
+
+        if not amount.isdigit():
+            exec(special[amount]['attr'])
+            amount = special[amount]['val']
+
+        self.score += int(amount)
+        
+        if int(amount) > 0:
+            return f'{self.name} has been given {amount} points, and now has {self.score} points in total'
+        else:
+            return f'{amount} points have been taken from {self.name}, and {self.name} now has {self.score} points in total'
+
+# Get token
 load_dotenv()
 token = getenv('DISCORD_TOKEN')
 
-bot = Bot(command_prefix=['QS ', 'qs ', 'quizscore ', 'q ', 'Q'])
+# Create bot instance
+bot = Bot(command_prefix=['QS ', 'qs ', 'quizscore ', 'q ', 'Q '])
 
+# On Discord connect
 @bot.event
 async def on_ready():
     print(f'{bot.user.name} has connected to Discord!')
 
-@bot.command(name='start', help='Starts a counter', aliases=['init', 'Start', 'i'])
-async def start(ctx):
-    if ctx.channel.id in players:
-        await ctx.send('A Counter has already started in this channel')
-    else:
-        players[ctx.channel.id] = {}
-        await ctx.send('Starting a counter')
+def valid_channel(ctx):
+    return Player.validChannel(ctx.channel.id)
 
-@bot.command(name='add', help='Adds score to a player, If a player doesn\'t exists, it creates them', aliases=['a'])
-async def add(ctx):
-    if not ctx.channel.id in players:
-        await ctx.send('You need to start a counter before running this command')
-    else:
-        playerName = ctx.message.content.split()[2]
-        pts = ctx.message.content.split()[3]
-        if not pts.isdigit():
-                ctx.send('You are using this command wrong')
-        else:
-            pts = int(pts)
-            if playerName in players[ctx.channel.id]:
-                players[ctx.channel.id][playerName] += pts
-            else:
-                players[ctx.channel.id][playerName] = pts
-            await ctx.send(f'{playerName} has been given {pts} points, and now has {players[ctx.channel.id][playerName]} points in total')
+@bot.command(name='a', help='Score changers, either type: \n a(misc score add - type player name after, and then a space and then value to add after that)\n n (neg - type player name after, subtracts 10 from this player)\n b(bonus - type player name after, adds 10 to this player)\n or p(pow - type player name after, adds 15 to this player)', aliases=['n', 'b', 'p'])
+async def scoreChange(ctx, name, amount=None):
+    if amount == None:
+        amount = ctx.message.content.split()[1]
+    return await ctx.send(Player.update(name, amount, ctx.channel.id))
 
-@bot.command(name='subtract', help='Subtracts score to a player, If a player doesn\'t exists, it creates them', aliases=['s', 'sub'])
-async def subtract(ctx):
-    if not ctx.channel.id in players:
-        await ctx.send('You need to start a counter before running this command')
-    else:
-        playerName = ctx.message.content.split()[2]
-        pts = ctx.message.content.split()[3]
-        if not pts.isdigit():
-            await ctx.send('You are using this command wrong')
-        else:
-            pts = int(pts)
-            if playerName in players[ctx.channel.id]:
-                players[ctx.channel.id][playerName] -= pts
-            else:
-                players[ctx.channel.id][playerName] = -1*pts
-        await ctx.send(f'{pts} points have been taken from {playerName}, and {playerName} now has {players[ctx.channel.id][playerName]} points in total')
-
-@bot.command(name='p', help='+15')
-async def p(ctx):
-    if not ctx.channel.id in players:
-        await ctx.send('You need to start a counter before running this command')
-    else:
-        playerName = ctx.message.content.split()[2]
-        if playerName in players[ctx.channel.id]:
-            players[ctx.channel.id][playerName] += 15
-        else:
-            players[ctx.channel.id][playerName] = 15
-        await ctx.send(f'{playerName} has been given 15 points, and now has {players[ctx.channel.id][playerName]} points in total')
-
-@bot.command(name='b', help='+10')
-async def b(ctx):
-    if not ctx.channel.id in players:
-        await ctx.send('You need to start a counter before running this command')
-    else:
-        playerName = ctx.message.content.split()[2]
-        if playerName in players[ctx.channel.id]:
-            players[ctx.channel.id][playerName] += 10
-        else:
-            players[ctx.channel.id][playerName] = 10
-        await ctx.send(f'{playerName} has been given 10 points, and now has {players[ctx.channel.id][playerName]} points in total')
-
-@bot.command(name='n', help='-5')
-async def n(ctx):
-    if not ctx.channel.id in players:
-        await ctx.send('You need to start a counter before running this command')
-    else:
-        playerName = ctx.message.content.split()[2]
-        if playerName in players[ctx.channel.id]:
-            players[ctx.channel.id][playerName] -= 5
-        else:
-            players[ctx.channel.id][playerName] = -5
-        await ctx.send(f'5 points have been taken from {playerName}, and {playerName} now has {players[ctx.channel.id][playerName]} points in total')
-
-@bot.command(name='show', help='Shows scoreboard', aliases=['disp', 'display', 'd', 'lb'])
+@bot.command(name='show', help='Shows scoreboard if there are players in the channel', aliases=['disp', 'display', 'd', 'lb'])
+@check(valid_channel)
 async def show(ctx):
-    if not ctx.channel.id in players:
-        await ctx.send('You need to start a counter before running this command')
-    else:
-        lb = [[v,k] for k, v in sorted(players[ctx.channel.id].items(), key=lambda item: item[1])]
-        lb.reverse()
-        ''' Slower
-        await ctx.send('Leaderboard')
-        for pos, item in enumerate(lb):
-            await ctx.send(f'({pos+1}){item[1]} - {item[0]}pts')
-        '''
-        lbText = 'Leaderboard\n'
-        for pos, item in enumerate(lb):
-            lbText += f'({pos+1}){item[1]} - {item[0]}pts\n'
-        await ctx.send(lbText[:-1])
+    return await ctx.send(Player.leaderboard(ctx.channel.id))
 
-@bot.command(name='clear', help='Sets all player scores to 0 in the counter if it exists', aliases=['end', 'c', 'e'])
-async def clear(ctx):
-    if not ctx.channel.id in players:
-        await ctx.send('There is no counter in this channel')
-    else:
-        players[ctx.channel.id] = dict.fromkeys(players[ctx.channel.id], 0)
-        await ctx.send('Cleared the counter')
+@bot.command(name='clear', help='Sets all player scores to 0 in the counter if there are players in the channel', aliases=['end', 'c', 'e'])
+@check(valid_channel)
+async def clear(ctx, full):
+    if not full:
+        for player in Player.playersByChannel[ctx.channel.id]:
+            player.reset() 
+        return await ctx.send('Cleared the counter')
+    del Player.playersByChannel[ctx.channel.id]
+    return await ctx.send('Fully cleared the counter')
 
-@bot.command(name='fullclear', help='Removes the counter in the current channel if it exists', aliases=['fc', 'fullc', 'fclear'])
-async def fclear(ctx):
-    if not ctx.channel.id in players:
-        await ctx.send('There is no counter in this channel')
-    else:
-        del players[ctx.channel.id]
-        await ctx.send('Fully cleared the counter')
+@show.error
+@clear.error
+async def no_players(ctx, error):
+    if isinstance(error, CheckFailure):
+        await ctx.send('There are no players in the channel!')
 
 bot.run(token)
