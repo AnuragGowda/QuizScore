@@ -1,4 +1,3 @@
-
 # Import libs we need
 from discord.ext.commands import Bot, check, CheckFailure
 from dotenv import load_dotenv
